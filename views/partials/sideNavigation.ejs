@@ -1,0 +1,185 @@
+<div class="secside">
+  <div class="sidebar close">
+    <header class="headInfo">
+      <div class="image-text">
+        <span class="image">
+          <img src="<%= user.profileImage %>" alt="<%= user.username %>'s Profile Image"
+            onerror="this.onerror=null; this.src='/public/img/profileImage/userDefalt.jpg';" />
+        </span>
+        <div class="text header-text">
+          <span class="name">
+            <%= user.username %>
+          </span>
+          <span class="user_id">#<%= user.userid %></span>
+        </div>
+      </div>
+      <div class="arrow-close" id="arrow-btn">
+        <i class="bx bx-chevron-right toggle"></i>
+      </div>
+    </header>
+    <div class="line"></div>
+    <div class="menu-bar">
+      <ul class="menu-link">
+        <li class="nav-links">
+          <a href="/space">
+            <i class="bx bx-columns" id="icon"></i>
+            <span class="text navbar-text">พื้นที่ทำงานทั้งหมด</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="line"></div>
+    <div class="showspace">
+      <div class="space">
+        <div class="spacoption">
+          <span class="space-text" style="color: #656f7d">พื้นที่ทั้งหมด</span>
+          <div class="spaceopt">
+            <i class="bx bx-plus"></i>
+            <li class="space-nav-item dropdown">
+              <a class="space-nav-link dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown"
+                aria-expanded="false">
+                <i class="bx bx-dots-horizontal-rounded"></i>
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <i class="fa-solid fa-plus"></i>สร้างพื้นที่ใหม่</a>
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <i class="fa-solid fa-list-check"></i>จัดการพื้นที่</a>
+                </li>
+                <li>
+                  <hr class="dropdown-divider" />
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <i class="fa-solid fa-eye"></i>โชว์พื้นที่ทั้งหมด</a>
+                </li>
+              </ul>
+            </li>
+          </div>
+        </div>
+        <div class="spaceitem-all">
+          <div class="scollitem">
+            <% if (spaces && spaces.length> 0) { %>
+              <% spaces.forEach(function(space) { %>
+
+                <ul class="spaceitem">
+                  <li class="itemDetail">
+                    <div class="spaceicon">
+                      <span id="spaceicon">
+                        <%= space?.SpaceName ? space.SpaceName.charAt(0) : 'N/A' %>
+                      </span>
+                      <span id="spacename">
+                        <%= space.SpaceName %>
+                      </span> <!-- Use space instead of spaces[i] -->
+                    </div>
+                    <div class="spaceoption">
+                      <a class="space-nav-link dropdown-toggle" id="navbarDropdown" role="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bx bx-dots-horizontal-rounded"></i>
+                      </a>
+                      <ul class="dropdown-menu" aria-labelledby="spaceDropdown">
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-pen"></i> เปลี่ยนชื่อ</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear"></i> ตั้งค่าพื้นที่</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-star"></i> ติดดาว</a></li>
+                        <li>
+                          <hr class="dropdown-divider" />
+                        </li>
+                        <li><a class="dropdown-item" href="#"><i class="fa-solid fa-box-archive"></i> จัดเก็บพื้นที่</a>
+                        </li>
+                        <li><a class="dropdown-item no-hover" href="#" style="color: red"><i class="fa-solid fa-trash"
+                              style="color: red"></i> ลบพื้นที่</a></li>
+                      </ul>
+                    </div>
+                  </li>
+
+                </ul>
+                <% }); %>
+                  <% } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Handle sidebar toggle
+    const body = document.querySelector("body"),
+      sidebar = body.querySelector(".sidebar"),
+      toggle = body.querySelector(".toggle"),
+      overlay = document.getElementById('overlay'),
+      toggleBtn = document.getElementById('arrow-btn'),
+      searchBtn = body.querySelector(".search-box"),
+      modeSwitch = body.querySelector(".toggle-switch"),
+      modeText = body.querySelector(".mode-text");
+
+    // Sidebar toggle button functionality
+    toggle.addEventListener("click", () => {
+      sidebar.classList.toggle("close");
+    });
+
+    toggleBtn.addEventListener('click', () => {
+      sidebar.classList.toggle('close');
+      // Check if the sidebar is open or closed
+      if (sidebar.classList.contains('close')) {
+        overlay.classList.remove('show');
+      } else {
+        overlay.classList.add('show');
+      }
+    });
+
+    // Hide overlay when clicked
+    overlay.addEventListener('click', () => {
+      sidebar.classList.add('close');
+      overlay.classList.remove('show');
+    });
+
+    // Log current path for debugging
+    console.log(window.location.pathname);
+
+    // Make the active menu item based on the current path
+    const currentPath = window.location.pathname;
+    const menuItems = document.querySelectorAll('.nav-links');
+
+    menuItems.forEach(item => {
+      const link = item.querySelector('a');
+      if (link.getAttribute('href') === currentPath) {
+        item.classList.add('active');
+      }
+    });
+
+    // Color the space icons with random colors
+    const spaceIcons = document.querySelectorAll('#spaceicon');
+
+    // Background and text colors
+    const colors = [{
+      background: '#FFE0B2',
+      text: '#E65100'
+    }, // Light yellow - Dark orange text
+    {
+      background: '#C5CAE9',
+      text: '#1A237E'
+    }, // Light blue - Dark blue text
+    {
+      background: '#B3E5FC',
+      text: '#01579B'
+    }, // Light blue - Dark blue text
+    {
+      background: '#D1C4E9',
+      text: '#4A148C'
+    } // Light purple - Dark purple text
+    ];
+
+    spaceIcons.forEach(spaceIcon => {
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+      // Set background and text color
+      spaceIcon.style.backgroundColor = randomColor.background;
+      spaceIcon.style.color = randomColor.text;
+    });
+  });
+</script>

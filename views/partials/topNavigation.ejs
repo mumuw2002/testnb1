@@ -1,0 +1,236 @@
+<head>
+    <link rel="stylesheet" href="../../public/css/partialsCss/topNavigation.css">
+</head>
+
+<body>
+    <div class="top_navigation">
+        <div class="navbar_logo">
+            <a href="/space" id="logo">Task Hub</a>
+        </div>
+
+        <div class="navbar_options">
+            <div class="search_container">
+                <form class="search_formTop">
+                    <i class="fa-solid fa-magnifying-glass" id="search_icon"></i>
+                    <input class="searchInputTop" type="search" placeholder="ค้นหา" aria-label="Search" maxlength="500">
+                </form>
+
+                <div class="mainSearchResult" style="display: none;">
+                    <ul class="resultList">
+                        <li class="resultItem">
+
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="navbar_nav">
+                <div class="nav_item" data-label="ช่วยเหลือ">
+                    <a class="nav_link" aria-current="page" href="/complaint">
+                        <i class="fa-solid fa-circle-info" id="iconLink"></i>
+                    </a>
+                </div>
+                <div class="nav_item" data-label="แจ้งเตือน" id="notiSection">
+                    <a class="nav_link" aria-current="page" id="noti-dropdown" role="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                        <i class="fa-solid fa-bell" id="iconLink"></i>
+                    </a>
+                    <div class="notiNew">
+                        <span class="count">0</span>
+                    </div>
+
+                    <div class="allNoti">
+                        <div class="notiTop">
+                            <span class="notiText">
+                                การแจ้งเตือน
+                            </span>
+                            <span class="closeNoti">
+                                <span style="font-size: 14px; 
+                                             font-weight: 300;
+                                             color: gray;">แสดงเฉพาะที่ยังไม่อ่าน</span>
+
+                                <input type="checkbox" hidden="hidden" id="username">
+                                <label class="switch" for="username"></label>
+                            </span>
+                        </div>
+
+                        <div class="divindLine"></div>
+
+                        <!-- <div class="notiItem notRead" id="invitation">
+                            <div class="notiConteneWarp">
+                                <div class="imgProfile">
+                                    <img src="/pic/images.jpeg" alt="" class="profileImage">
+                                </div>
+                                <div class="notiContent">
+                                    <span class="firstLine">
+                                        <span style="font-weight: 400;">User Name</span> ได้เพิ่มคุณเข้าโปรเจกต์
+                                        <a href="#" style="font-weight: 400;" id="viewLine">Project Name</a> แล้ว
+                                    </span>
+                                    <span class="secondLine">
+                                        แจ้งเตือนเมื่อ:
+                                    </span>
+                                </div>
+
+                                <div class="readSec">
+                                    <button id="isRead"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="notiItem" id="invitation">
+                            <div class="notiConteneWarp">
+                                <div class="imgProfile">
+                                    <img src="/pic/images.jpeg" alt="" class="profileImage">
+                                </div>
+                                <div class="notiContent">
+                                    <span class="firstLine">
+                                        <span>User Name</span> ได้เพิ่มคุณเข้าโปรเจกต์
+                                        <a href="#">Project Name</a> แล้ว
+                                    </span>
+                                    <span class="secondLine">
+                                        แจ้งเตือนเมื่อ
+                                    </span>
+                                </div>
+
+                                <div class="readSec">
+                                    <button id="isRead"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="notiItem taskAssignment" id="taskAssignment">
+                            <div class="notiItemWrap">
+                                <div class="notiFrom">
+                                    <div class="assTask">
+                                        <a href="#" id="viewTaskLink">Assgined Task Name</a>
+                                    </div>
+                                    <div class="assProject">
+                                        Assgined Project Name: <span style="font-weight: 300;">
+                                            <a href="#" style="color: white;">spaceName</a></span>
+                                    </div>
+                                </div>
+                                <div class="notiConteneWarp">
+                                    <div class="imgProfile">
+                                        <img src="/pic/images.jpeg" alt="" class="profileImage">
+                                    </div>
+                                    <div class="notiContent">
+                                        <span class="firstLine">
+                                            <span style="font-weight: 400;">User Name</span> ได้มอบหมายงานให้กับคุณ
+                                            <br> ครบกำหนดวันที่: <span style="font-weight: 400;">DueDate</span>
+                                        </span>
+                                        <span class="secondLine">
+                                            แจ้งเตือนเมื่อ
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="readSec">
+                                <button id="isRead"></button>
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+
+                <div class="nav_itemDropdown">
+                    <div class="linkWrap">
+                        <a class="nav_link dropdown-toggle" id="profile-dropdown" role="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <img src="<%= user.profileImage %><%= user.profileImage %> || /img/profileImage/Profile.jpeg" 
+                                 alt="<%= user.username %>'s Profile Image" 
+                                 onerror="this.onerror=null; this.src='/public/img/profileImage/userDefalt.jpg';"
+                                 id="userImg">
+                        </a>
+                    </div>
+
+                    <div class="dropdown_menu">
+                        <div class="menuItem">
+                            <a class="menuItemLink" href="#">
+                                <i class="fa-solid fa-address-card" id="linkIcon"></i>
+                                <span id="linkText">
+                                    โปรไฟล์
+                                </span>
+                            </a>
+                        </div>
+                        <div class="menuItem">
+                            <a class="menuItemLink" href="#">
+                                <i class="fa-solid fa-gear" id="linkIcon"></i>
+                                <span id="linkText">
+                                    การตั้งค่า
+                                </span>
+                            </a>
+                        </div>
+                        <div class="menuItem">
+                            <a class="menuItemLink" href="#">
+                                <i class="fa-solid fa-trash" id="linkIcon"></i>
+                                <span id="linkText">
+                                    ถังขยะ
+                                </span>
+                            </a>
+                        </div>
+
+                        <div class="divindLine"></div>
+
+                        <div class="menuItem">
+                            <a class="menuItemLink" href="/logout" style="color: red;">
+                                <i class="fa-solid fa-arrow-right-from-bracket" style="color: red;" id="linkIcon"></i>
+                                <span id="linkText" style="color: red;">
+                                    ออกจากระบบ
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    // more setting
+    window.addEventListener('DOMContentLoaded', () => {
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const dropdownMenu = document.querySelector('.dropdown_menu');
+
+        // Toggle dropdown visibility when clicking on the profile image
+        profileDropdown.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click from bubbling up
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // Close the dropdown when clicking outside of it
+        document.addEventListener('click', () => {
+            if (dropdownMenu.classList.contains('show')) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // Prevent the dropdown from closing when clicking inside it
+        dropdownMenu.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+    });
+
+    // notification
+    window.addEventListener('DOMContentLoaded', () => {
+        const profileDropdown = document.getElementById('noti-dropdown');
+        const dropdownMenu = document.querySelector('.allNoti');
+
+        // Toggle dropdown visibility when clicking on the profile image
+        profileDropdown.addEventListener('click', (event) => {
+            event.stopPropagation(); // Prevent the click from bubbling up
+            dropdownMenu.classList.toggle('show');
+        });
+
+        // Close the dropdown when clicking outside of it
+        document.addEventListener('click', () => {
+            if (dropdownMenu.classList.contains('show')) {
+                dropdownMenu.classList.remove('show');
+            }
+        });
+
+        // Prevent the dropdown from closing when clicking inside it
+        dropdownMenu.addEventListener('click', (event) => {
+            event.stopPropagation();
+        });
+    });
+</script>
