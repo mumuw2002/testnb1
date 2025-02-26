@@ -37,7 +37,6 @@ router.get("/auth/google/callback", passport.authenticate("google", {
   failureRedirect: "/login-failure",
   successRedirect: "/space",
 }));
-
 // Login
 router.get("/login", authController.loginPage);
 router.post("/login", authController.login);
@@ -51,6 +50,7 @@ router.get("/login-failure", authController.loginFailure);
 
 // Logout
 router.get("/logout", authController.logout);
+
 router.get('/forgot-password', authController.showForgotPassword);
 router.post('/forgot-password', authController.resendOTP);
 
