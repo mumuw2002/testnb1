@@ -180,7 +180,7 @@ exports.resendOTP = async (req, res) => {
 
     console.log('พบผู้ใช้:', user.googleEmail);
 
-    const otp = crypto.randomBytes(6).toString('hex'); 
+    const otp = crypto.randomBytes(6).toString('hex');
     const salt = await bcrypt.genSalt(12);
     const hashedOtp = await bcrypt.hash(otp, salt);
 
@@ -297,6 +297,8 @@ exports.resetPassword = async (req, res) => {
     // ใช้ setPassword
     await user.setPassword(newPassword);
     await user.save();
+
+    await logFeatureUsage('เปลี่ยนรหัสผ่าน');
 
     console.log('รีเซ็ตรหัสผ่านเสร็จสมบูรณ์:', email);
 
