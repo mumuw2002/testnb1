@@ -57,7 +57,7 @@ exports.SpaceDashboard = async (req, res) => {
         user: req.user,
         notifications,
         unreadCount,
-        layout: "layouts/space"
+        layout: "../views/layouts/Space"
       });
     } catch (error) {
       console.error("Error fetching spaces:", error);
@@ -93,7 +93,7 @@ exports.createSpace = async (req, res) => {
       res.render("space/createProject", {
         spaces,
         user: req.user,
-        layout: "../views/layouts/space",
+        layout: "../views/layouts/Space",
         notifications,
         unreadCount,
         errorMessage: errorMessage.length > 0 ? errorMessage[0] : null, // Pass the message to the view
@@ -182,7 +182,7 @@ exports.createSpace = async (req, res) => {
       ];
       await Status.insertMany(defaultStatuses);
 
-      res.redirect("/space");
+      res.redirect("/Space");
     } catch (error) {
       req.flash('error', 'เกิดข้อผิดพลาดในการดึงข้อมูลโปรเจกต์');
       res.redirect('/createProject');
@@ -289,12 +289,12 @@ exports.ShowRecover = async (req, res) => {
       },
     ]).exec();
 
-    res.render("space/space-recover", {
+    res.render("Space/space-recover", {
       spaces: spaces,
       userName: req.user.username,
       usernameId: req.user.userid,
       userImage: req.user.profileImage,
-      layout: "../views/layouts/space",
+      layout: "../views/layouts/Space",
     });
   } catch (error) {
     console.log(error);
@@ -315,7 +315,7 @@ exports.recoverSpace = async (req, res) => {
       return res.status(404).json({ success: false, error: "Space not found" });
     }
 
-    res.redirect('/space');
+    res.redirect('/Space');
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, error: "Internal Server Error" });
@@ -379,13 +379,13 @@ module.exports.edit_Update_SpacePicture = async (req, res) => {
       res.send(
         '<script>alert("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: ' +
         err +
-        '"); window.location="/space";</script>'
+        '"); window.location="/Space";</script>'
       );
     } else {
       if (req.file == undefined) {
         // กรณีไม่ได้เลือกไฟล์
         res.send(
-          '<script>alert("ไม่ได้เลือกไฟล์! กรุณาเลือกไฟล์รูปภาพ"); window.location="/space";</script>'
+          '<script>alert("ไม่ได้เลือกไฟล์! กรุณาเลือกไฟล์รูปภาพ"); window.location="/Space";</script>'
         );
       } else {
         try {
@@ -396,14 +396,14 @@ module.exports.edit_Update_SpacePicture = async (req, res) => {
 
           // หลังจากบันทึกเสร็จสิ้น
           res.send(
-            '<script>alert("อัปโหลดรูปภาพสำเร็จ"); window.location="/space";</script>'
+            '<script>alert("อัปโหลดรูปภาพสำเร็จ"); window.location="/Space";</script>'
           );
         } catch (error) {
           console.log(error);
           res.send(
             '<script>alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' +
             error.message +
-            '"); window.location="/space";</script>'
+            '"); window.location="/Space";</script>'
           );
         }
       }
@@ -415,16 +415,16 @@ module.exports.edit_Update_SpaceName = async (req, res) => {
   try {
     const space = await Space.findById(req.params.id);
     if (!space) {
-      return res.status(404).send('<script>alert("ไม่พบพื้นที่งาน!"); window.location="/space";</script>');
+      return res.status(404).send('<script>alert("ไม่พบพื้นที่งาน!"); window.location="/Space";</script>');
     }
 
     space.SpaceName = req.body.SpaceName;
     await space.save();
 
-    res.redirect('/space'); // เปลี่ยนเป็น redirect เพื่อโหลดใหม่โดยไม่มีแจ้งเตือน
+    res.redirect('/Space'); // เปลี่ยนเป็น redirect เพื่อโหลดใหม่โดยไม่มีแจ้งเตือน
   } catch (error) {
     console.log(error);
-    res.send('<script>alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message + '"); window.location="/space";</script>');
+    res.send('<script>alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message + '"); window.location="/Space";</script>');
   }
 };
 
@@ -449,7 +449,7 @@ exports.addStatus = async (req, res) => {
 
       await newStatus.save();
 
-      res.redirect(`/space/item/${spaceId}/task_board`);
+      res.redirect(`/Space/item/${spaceId}/task_board`);
   } catch (error) {
       console.error('Error adding status:', error);
       res.status(500).send("Internal Server Error");
