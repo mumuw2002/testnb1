@@ -33,7 +33,7 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth authentication route
 router.get("/auth/google", passport.authenticate("google", { scope: ["email", "profile"] }));
-router.get("/google/callback", passport.authenticate("google", {
+router.get("/auth/google/callback", passport.authenticate("google", {
   failureRedirect: "/login-failure",
   successRedirect: "/space",
 }));
