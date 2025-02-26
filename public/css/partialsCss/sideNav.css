@@ -412,11 +412,17 @@ header .image-text .header-text {
 /* space */
 .showspace .space-text {
     font-size: 18px;
+    font-weight: 500;
+    margin-left: 10px;
+    color: var(--text-color);
+    transition: opacity 0.3sease;
+    white-space: nowrap;
+    opacity: 1;
 }
 
 .space,
 .fav {
-    padding: 0 40px;
+    padding: 0 25px;
     width: 100%;
     margin-top: 20px;
     margin-bottom: 10px;
@@ -434,6 +440,8 @@ header .image-text .header-text {
     display: flex;
     align-items: center;
 }
+
+.space
 
 .spaceopt {
     list-style: none;
@@ -549,7 +557,12 @@ header .image-text .header-text {
     justify-content: center;
     align-items: center;
     padding: 0;
+    width: 100%;
+    margin-top: 20px;
+    margin-bottom: 10px;
 }
+
+
 
 .sidebar.close.spaceopt i:hover {
     background-color: var(--lightselect);
@@ -610,6 +623,7 @@ header .image-text .header-text {
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-left: 15px;
 }
 
 .itemDetail #spacename {
@@ -736,6 +750,7 @@ header .image-text .header-text {
     width: 34px;
     height: 34px;
     font-size: 13px;
+    margin-left: 0;    
 }
 .sidebar.close .nav-links a{
     padding: 0;
