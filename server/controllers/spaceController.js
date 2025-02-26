@@ -57,7 +57,7 @@ exports.SpaceDashboard = async (req, res) => {
         user: req.user,
         notifications,
         unreadCount,
-        layout: "../views/layouts/space"
+        layout: "layouts/space"
       });
     } catch (error) {
       console.error("Error fetching spaces:", error);
