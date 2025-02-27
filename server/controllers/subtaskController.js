@@ -2,6 +2,8 @@
 const SubTask = require("../models/SubTask");
 const Notification = require('../models/Noti');
 const mongoose = require('mongoose');
+const logUserActivity = require('../utils/activityLogger');
+const logFeatureUsage = require('../utils/featureLogger');
 
 exports.createSubTask = async (req, res) => {
     const { taskId, subTask, dueDate, assignee } = req.body;

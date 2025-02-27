@@ -5,6 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const User = require('../models/User');
 const { sendEmail } = require('../../emailService');
+const logUserActivity = require('../utils/activityLogger');
+const logFeatureUsage = require('../utils/featureLogger');
 
 function generateComplaintNumber(date) {
   const year = date.getFullYear();
@@ -62,6 +64,9 @@ exports.submitComplaint = async (req, res, next) => {
 
     const complaint = new Complaint(complaintData);
     await complaint.save();
+
+    await logUserActivity(req.user._id, 'สร้างรายงานปัญหา');
+    await logFeatureUsage('สร้างรายงานปัญหา');
 
     // ส่งอีเมลแจ้งผู้ใช้ว่าได้สร้างรายงานปัญหาแล้ว
     const user = req.user;

@@ -3,6 +3,8 @@ const Spaces = require('../models/Space');
 const User = require("../models/User");
 const Notification = require('../models/Noti');
 const moment = require('moment');
+const logUserActivity = require('../utils/activityLogger');
+const logFeatureUsage = require('../utils/featureLogger');
 
 exports.manage_Member = async (req, res) => {
     try {
@@ -98,6 +100,9 @@ exports.addMemberToSpace = async (req, res) => {
         space.collaborators.push({ user: memberId, role });
         await space.save();
 
+        await logUserActivity(req.user._id, 'เชิญสมาชิกเข้าร่วมโปรเจกต์');
+        await logFeatureUsage('เชิญสมาชิกเข้าร่วมโปรเจกต์');
+
         res.status(200).json({ success: true, message: 'Member added successfully!' });
     } catch (error) {
         console.error('Error adding member to space:', error);
@@ -138,6 +143,9 @@ exports.searchMembers = async (req, res) => {
             },
             'username userid googleEmail profileImage'
         ).lean();
+
+        await logUserActivity(req.user._id, 'ค้นหาสมาชิก');
+        await logFeatureUsage('ค้นหาสมาชิก');
 
         res.status(200).json(users);
     } catch (error) {
@@ -182,6 +190,9 @@ exports.updateRole = async (req, res) => {
         });
         await notification.save();
 
+        await logUserActivity(req.user._id, 'เชิญสมาชิกเข้าร่วมโปรเจกต์');
+        await logFeatureUsage('เชิญสมาชิกเข้าร่วมโปรเจกต์');
+
         res.json({ success: true, message: 'Role updated successfully and notification sent.' });
     } catch (error) {
         console.error('Error updating role:', error);
@@ -221,6 +232,9 @@ exports.deleteMember = async (req, res) => {
             leader: req.user._id // Include the leader's information
         });
         await notification.save();
+
+        await logUserActivity(req.user._id, 'ลบสมาชิกในโปรเจกต์');
+        await logFeatureUsage('ลบสมาชิกในโปรเจกต์');
 
         res.json({ success: true, message: 'Member removed successfully and notification sent.' });
     } catch (error) {

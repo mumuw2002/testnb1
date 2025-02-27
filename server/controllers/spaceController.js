@@ -11,6 +11,8 @@ const path = require("path");
 const Task = require('../models/Task'); 
 const fs = require('fs');
 moment.locale('th');
+const logUserActivity = require('../utils/activityLogger');
+const logFeatureUsage = require('../utils/featureLogger');
 
 exports.SpaceDashboard = async (req, res) => {
   try {
@@ -173,6 +175,9 @@ exports.createSpace = async (req, res) => {
       }
       await newSpace.save();
       
+      await logUserActivity(req.user._id, 'สร้างโปรเจกต์');
+      await logFeatureUsage('สร้างโปรเจกต์');
+
       // Add default statuses
       const defaultStatuses = [
         { name: "ยังไม่ทำ", category: "toDo", space: newSpace._id },
@@ -236,6 +241,9 @@ exports.searchMembers = async (req, res) => {
       .limit(10)
       .select('username googleEmail userid profileImage');
 
+      await logFeatureUsage('ค้นหาสมาชิก');
+      await logUserActivity(req.user._id, 'ค้นหาสมาชิก');
+
     res.json(users);
   } catch (error) {
     console.error('Error searching members:', error);
@@ -261,6 +269,9 @@ exports.deleteSpace = async (req, res) => {
     space.deleted = true;
     await space.save();
 
+    await logUserActivity(req.user._id, 'ลบโปรเจกต์');
+    await logFeatureUsage('ลบโปรเจกต์');
+    
     res.json({ success: true });
   } catch (error) {
     console.error(error);
@@ -314,6 +325,9 @@ exports.recoverSpace = async (req, res) => {
     if (!space) {
       return res.status(404).json({ success: false, error: "Space not found" });
     }
+
+    await logUserActivity(req.user._id, 'กู้คืนโปรเจกต์');
+    await logFeatureUsage('กู้คืนโปรเจกต์');
 
     res.redirect('/Space');
   } catch (error) {
@@ -420,6 +434,9 @@ module.exports.edit_Update_SpaceName = async (req, res) => {
 
     space.SpaceName = req.body.SpaceName;
     await space.save();
+
+    await logUserActivity(req.user._id, 'แก้ไขชื่อโปรเจค');
+    await logFeatureUsage('แก้ไขชื่อโปรเจค');
 
     res.redirect('/Space'); // เปลี่ยนเป็น redirect เพื่อโหลดใหม่โดยไม่มีแจ้งเตือน
   } catch (error) {
