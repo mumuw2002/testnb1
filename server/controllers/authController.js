@@ -1,57 +1,70 @@
 // auth controller
 const passport = require("passport");
 const User = require("../models/User");
-const adminController = require('./adminController');
 const crypto = require('crypto');
 const bcrypt = require("bcrypt");
 const { sendEmail } = require("../../emailService");
 const logUserActivity = require('../utils/activityLogger');
 const logFeatureUsage = require('../utils/featureLogger');
+const mongoose = require("mongoose"); // เพิ่มบรรทัดนี้
+
 
 exports.googleCallback = async (accessToken, refreshToken, profile, done) => {
   try {
-    let user = await User.findOne({ googleId: profile.id }) || await User.findOne({ googleEmail: profile.emails[0].value });
+    const googleEmail = profile.emails[0].value;
+    let user = await User.findOne({ googleEmail });
 
     if (user) {
+      // กรณี user มีอยู่แล้วในระบบ (login ปกติ)
       user.lastActive = Date.now();
       user.isOnline = true;
+
+      if (!user.googleId) user.googleId = profile.id;
+      if (!user.profileImage) {
+        user.profileImage = profile.photos?.[0]?.value || '/img/profileImage/Profile.jpeg';
+      }
+
       await user.save();
-      if (!user.googleId) {
-        user.googleId = profile.id;
-        user.profileImage = profile.photos[0]?.value || '/img/profileImage/Profile.jpeg';
-        await user.save();
-      }
       return done(null, user);
-    }
-    else {
-      user = await User.findOne({ googleEmail: profile.emails[0].value });
-
-      if (user && !user.googleId) {
-        user.googleId = profile.id;
-        user.profileImage = profile.photos[0]?.value || '/img/profileImage/Profile.jpeg';
-        user.lastActive = Date.now();
-        user.isOnline = true;
-        await user.save();
-        return done(null, user);
-      }
-      else {
-        const newUser = new User({
-          googleId: profile.id,
-          googleEmail: profile.emails[0].value,
-          profileImage: profile.photos[0]?.value || '/img/profileImage/Profile.jpeg',
-          role: profile.emails[0].value === process.env.ADMIN_EMAIL ? "admin" : "user",
-          lastActive: Date.now(),
-          isOnline: true
-        });
-
-        user = await newUser.save();
-        adminController.sendUnexpiredAnnouncementsToNewUser(newUser.googleEmail);
-        return done(null, user);
-      }
+    } else {
+      // กรณี email ยังไม่มีในระบบ ให้ไปที่ googleRegister.ejs
+      // เก็บข้อมูลเบื้องต้นไว้ใน session เพื่อนำไปแสดงตอนกรอกฟอร์ม
+      return done(null, false, { googleEmail, profileImage: profile.photos?.[0]?.value || '/img/profileImage/Profile.jpeg' });
     }
   } catch (error) {
-    console.error(error);
+    console.error("Google login error:", error);
     return done(error, null);
+  }
+};
+
+exports.googleRegister = async (req, res) => {
+  const { firstName, lastName, password, googleEmail } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  try {
+    // ตรวจสอบว่า googleEmail เป็น string
+    const email = Array.isArray(googleEmail) ? googleEmail[0] : googleEmail;
+
+    const newUser = new User({
+      userid: new mongoose.Types.ObjectId().toString(),
+      firstName,
+      lastName,
+      googleEmail: email, // ใช้ email ที่เป็น string
+      password: hashedPassword,
+      profileImage: req.body.profileImage || '/img/profileImage/Profile.jpeg',
+      role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
+      lastActive: Date.now(),
+      isOnline: true
+    });
+
+    await newUser.save();
+    req.flash('success', 'ลงทะเบียนสำเร็จแล้ว');
+    res.redirect('/space');
+    
+  } catch (err) {
+    console.error("Google register error:", err);
+    req.flash('errors', [err.message]);
+    res.redirect('/auth/google');
   }
 };
 
@@ -79,7 +92,8 @@ exports.login = async (req, res, next) => {
 
       user.lastLogin = Date.now();
       user.lastActive = Date.now();
-      
+      user.isOnline = true;
+
       await user.save();
       await logUserActivity(req.user._id, 'เข้าสู่ระบบ');
       await logFeatureUsage('เข้าสู่ระบบ');
@@ -90,27 +104,32 @@ exports.login = async (req, res, next) => {
 };
 
 exports.registerUser = async (req, res) => {
-  const { username, password, confirmPassword, googleEmail } = req.body;
+  const { firstName, lastName, password, confirmPassword, googleEmail } = req.body;
   const errors = [];
 
   if (password !== confirmPassword) errors.push("รหัสผ่านและการยืนยันรหัสผ่านไม่ตรงกัน");
-  if (await User.findOne({ username })) errors.push("ชื่อผู้ใช้นี้มีอยู่แล้ว");
   if (await User.findOne({ googleEmail })) errors.push("อีเมลนี้มีอยู่แล้ว");
 
   if (errors.length > 0) {
     req.flash("errors", errors);
+    req.flash("firstName", firstName);
+    req.flash("lastName", lastName);
+    req.flash("googleEmail", googleEmail);
+    req.flash("password", password);
+    req.flash("confirmPassword", confirmPassword);
     return res.redirect("/register");
   }
 
   try {
     const newUser = new User({
-      username,
+      firstName,
+      lastName,
       googleEmail
     });
 
     await User.register(newUser, password);
     req.flash('success', 'ลงทะเบียนสำเร็จแล้ว');
-    res.redirect('/login');
+    res.redirect('/space');
   } catch (err) {
     req.flash('errors', [err.message]);
     res.redirect('/register');
@@ -120,12 +139,14 @@ exports.registerUser = async (req, res) => {
 exports.registerPage = (req, res) => {
   res.render("log/register", {
     errors: req.flash("errors"),
-    username: req.flash("username"),
+    firstName: req.flash("firstName"),
+    lastName: req.flash("lastName"),
     googleEmail: req.flash("googleEmail"),
     password: req.flash("password"),
     confirmPassword: req.flash("confirmPassword"),
   });
 };
+
 
 exports.loginFailure = (req, res) => {
   res.send("Something went wrong...");
@@ -156,7 +177,6 @@ exports.logout = (req, res) => {
     }
   });
 };
-
 
 // Reset password
 exports.showForgotPassword = (req, res) => {

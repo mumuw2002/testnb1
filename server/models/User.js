@@ -6,15 +6,15 @@ const UserSchema = new Schema({
     userid: {
         type: String,
         unique: true,
-        default: function () {
-            const characters = "abcdefghijklmnopqrstuvwxyz0123456789";
-            return '#' + Array.from({ length: 5 }, () => characters.charAt(Math.floor(Math.random() * characters.length))).join('');
-        }
-    },
-    username: {
+        default: () => new mongoose.Types.ObjectId().toString(), // ให้ค่าเป็น ObjectId แบบสุ่ม
+    },    
+    firstName: {
         type: String,
-        required: true,
-        default: 'anonymous',
+        required: false,
+    },
+    lastName: {
+        type: String,
+        required: false,
     },
     password: {
         type: String,
@@ -32,7 +32,7 @@ const UserSchema = new Schema({
     },
     profileImage: {
         type: String,
-        default: '/img/profileImage/img-user.svg',
+        default: '/img/profileImage/Profile.jpeg',
     },
     role: {
         type: String,
@@ -54,6 +54,10 @@ const UserSchema = new Schema({
     lastActive: {
         type: Date,
         default: Date.now,
+    },
+    isOnline: {
+        type: Boolean,
+        default: false,
     },
     preferences: {
         notifications: {

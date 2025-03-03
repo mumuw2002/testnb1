@@ -33,10 +33,24 @@ passport.deserializeUser(async (id, done) => {
 
 // Google OAuth authentication route
 router.get("/auth/google", passport.authenticate("google", { scope: ["email", "profile"] }));
-router.get("/auth/google/callback", passport.authenticate("google", {
-  failureRedirect: "/login-failure",
-  successRedirect: "/space",
-}));
+
+router.get("/auth/google/callback", (req, res, next) => {
+  passport.authenticate("google", (err, user, info) => {
+      if (err) return next(err);
+
+      if (!user && info?.googleEmail) {
+          return res.render("log/googleRegister", { googleEmail: info.googleEmail });
+      }
+
+      req.logIn(user, (err) => {
+          if (err) return next(err);
+          return res.redirect("/space");
+      });
+  })(req, res, next);
+});
+
+router.post('/google-register', authController.googleRegister);
+
 // Login
 router.get("/login", authController.loginPage);
 router.post("/login", authController.login);

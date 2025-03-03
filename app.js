@@ -25,7 +25,6 @@ const port = process.env.PORT || 5001;
 connectDB()
   .then(() => {
     console.log('Connected to database');
-    createAdminUser(); // สร้าง Admin เมื่อเชื่อมต่อฐานข้อมูลสำเร็จ
   })
   .catch(err => {
     console.error('Failed to connect to database:', err);
@@ -133,7 +132,6 @@ app.use('/', require('./server/routes/notiRoutes'));
 app.use('/', require('./server/routes/subtaskRoutes'));
 app.use('/', require('./server/routes/settingRoutes'));
 app.use('/', require('./server/routes/userRoutes'));
-app.use('/', require('./server/routes/adminRoutes'));
 app.use('/', require('./server/routes/collabRoutes'));
 
 // Handle 404
@@ -146,39 +144,3 @@ app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
 
-// ✅ สร้าง Admin User
-async function createAdminUser() {
-  try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-    const existingAdmin = await User.findOne({ googleEmail: adminEmail });
-
-    if (!existingAdmin) {
-      const newAdmin = new User({
-        googleEmail: adminEmail,
-        username: 'Administrator',
-        role: 'admin',
-      });
-
-      const hashedPassword = await bcrypt.hash(adminPassword, 10);
-      await User.register(newAdmin, hashedPassword);
-      console.log('Admin user created successfully.');
-    }
-  } catch (err) {
-    console.error('Failed to create admin user:', err);
-  }
-}
-
-// ✅ ลบประกาศที่หมดอายุ
-schedule.scheduleJob('0 0 * * *', async () => {
-  try {
-    const now = new Date();
-    const result = await SystemAnnouncement.updateMany(
-      { expirationDate: { $lt: now }, isDeleted: { $ne: true } },
-      { isDeleted: true, updatedAt: now }
-    );
-    console.log(`${result.modifiedCount} expired announcements moved to history.`);
-  } catch (error) {
-    console.error('Error moving expired announcements to history:', error);
-  }
-});

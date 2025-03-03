@@ -13,15 +13,6 @@
       referrerpolicy="no-referrer"
     />
     <link rel="stylesheet" href="/css/loginCss/register.css" />
-    <style>
-      .password-toggle-icon {
-        cursor: pointer;
-        color: black;
-      }
-      .password-toggle-icon.hidden {
-        color: gray;
-      }
-    </style>
 </head>
 
 <body>
@@ -37,13 +28,26 @@
             <% } %>
 
             <div class="input-box">
-                <span class="span-text">ชื่อผู้ใช้:</span>
+                <span class="span-text">ชื่อ:</span>
                 <input
                     type="text"
-                    id="username"
-                    name="username"
+                    id="firstName"
+                    name="firstName"
                     placeholder="ชื่อผู้ใช้"
-                    value="<%= username %>"
+                    value="<%= firstName %>"
+                    required
+                />
+                <i class="fa fa-user"></i>
+            </div>
+
+            <div class="input-box">
+                <span class="span-text">นามสกุล:</span>
+                <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    placeholder="ชื่อผู้ใช้"
+                    value="<%= lastName %>"
                     required
                 />
                 <i class="fa fa-user"></i>
