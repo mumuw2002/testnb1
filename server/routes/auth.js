@@ -39,7 +39,11 @@ router.get("/auth/google/callback", (req, res, next) => {
       if (err) return next(err);
 
       if (!user && info?.googleEmail) {
-          return res.render("log/googleRegister", { googleEmail: info.googleEmail });
+          return res.render("log/googleRegister", { 
+              googleEmail: info.googleEmail,
+              googleId: info.googleId,
+              profileImage: info.profileImage
+          });
       }
 
       req.logIn(user, (err) => {

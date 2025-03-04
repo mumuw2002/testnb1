@@ -8,28 +8,29 @@ const logUserActivity = require('../utils/activityLogger');
 const logFeatureUsage = require('../utils/featureLogger');
 const mongoose = require("mongoose"); // เพิ่มบรรทัดนี้
 
-
 exports.googleCallback = async (accessToken, refreshToken, profile, done) => {
   try {
     const googleEmail = profile.emails[0].value;
+    const googleId = profile.id;
+    const profileImage = profile.photos?.[0]?.value;
+
     let user = await User.findOne({ googleEmail });
 
     if (user) {
-      // กรณี user มีอยู่แล้วในระบบ (login ปกติ)
       user.lastActive = Date.now();
       user.isOnline = true;
 
-      if (!user.googleId) user.googleId = profile.id;
-      if (!user.profileImage) {
-        user.profileImage = profile.photos?.[0]?.value || '/img/profileImage/Profile.jpeg';
-      }
+      if (!user.googleId) user.googleId = googleId;
+      if (!user.profileImage) user.profileImage = profileImage;
 
       await user.save();
-      return done(null, user);
+      return done(null, user); 
     } else {
-      // กรณี email ยังไม่มีในระบบ ให้ไปที่ googleRegister.ejs
-      // เก็บข้อมูลเบื้องต้นไว้ใน session เพื่อนำไปแสดงตอนกรอกฟอร์ม
-      return done(null, false, { googleEmail, profileImage: profile.photos?.[0]?.value || '/img/profileImage/Profile.jpeg' });
+      return done(null, false, { 
+          googleEmail, 
+          googleId, 
+          profileImage 
+      });
     }
   } catch (error) {
     console.error("Google login error:", error);
@@ -38,28 +39,37 @@ exports.googleCallback = async (accessToken, refreshToken, profile, done) => {
 };
 
 exports.googleRegister = async (req, res) => {
-  const { firstName, lastName, password, googleEmail } = req.body;
+  const { firstName, lastName, password, googleEmail, googleId, profileImage } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
-    // ตรวจสอบว่า googleEmail เป็น string
     const email = Array.isArray(googleEmail) ? googleEmail[0] : googleEmail;
 
     const newUser = new User({
       userid: new mongoose.Types.ObjectId().toString(),
       firstName,
       lastName,
-      googleEmail: email, // ใช้ email ที่เป็น string
+      googleEmail: email,
+      googleId,
       password: hashedPassword,
-      profileImage: req.body.profileImage || '/img/profileImage/Profile.jpeg',
+      profileImage: profileImage || '/img/profileImage/Profile.jpeg',
       role: email === process.env.ADMIN_EMAIL ? "admin" : "user",
       lastActive: Date.now(),
       isOnline: true
     });
 
     await newUser.save();
-    req.flash('success', 'ลงทะเบียนสำเร็จแล้ว');
-    res.redirect('/space');
+
+    req.login(newUser, (err) => {
+      if (err) {
+        console.error("Auto login error:", err);
+        req.flash('errors', [err.message]);
+        return res.redirect('/login');
+      }
+
+      req.flash('success', 'ลงทะเบียนสำเร็จแล้ว');
+      return res.redirect('/space');
+    });
     
   } catch (err) {
     console.error("Google register error:", err);

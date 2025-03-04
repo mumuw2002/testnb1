@@ -14,9 +14,7 @@ const User = require('./server/models/User');
 const moment = require('moment');
 const bodyParser = require('body-parser');
 const lineWebhook = require('./server/routes/lineWebhook');
-const schedule = require('node-schedule'); 
-const SystemAnnouncement = require('./server/models/SystemAnnouncements');
-const bcrypt = require("bcrypt");
+
 
 const app = express();
 const port = process.env.PORT || 5001;
