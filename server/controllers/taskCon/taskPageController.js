@@ -1,6 +1,7 @@
 /// task page controller
 const Task = require("../../models/Task");
 const Spaces = require('../../models/Space');
+const Chat = require('../../models/Chat');
 const SubTask = require('../../models/SubTask');
 const User = require("../../models/User");
 const Status = require('../../models/Status');

@@ -23,4 +23,5 @@ router.get('/searchMembers', isLoggedIn, spaceController.searchMembers);
 router.post('/addStatus',isLoggedIn, spaceController.addStatus);
 router.get('/:spaceId/statuses', isLoggedIn, spaceController.getSpaceStatuses);
 
+
 module.exports = router;

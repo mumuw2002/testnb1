@@ -14,10 +14,15 @@ const User = require('./server/models/User');
 const moment = require('moment');
 const bodyParser = require('body-parser');
 const lineWebhook = require('./server/routes/lineWebhook');
-
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
 const port = process.env.PORT || 5001;
+const server = http.createServer(app);
+const io = socketIo(server);
+
+app.set('io', io);
 
 // เชื่อมต่อฐานข้อมูล
 connectDB()
@@ -85,6 +90,7 @@ app.use((req, res, next) => {
   next();
 });
 
+
 // Middleware to handle due date validation
 app.use((req, res, next) => {
   if (req.body.dueDate) {
@@ -110,6 +116,7 @@ app.use(async (req, res, next) => {
   }
   next();
 });
+
 
 // Templating Engine
 app.use(expressLayouts);
@@ -137,8 +144,21 @@ app.get('*', (req, res) => {
   res.status(404).render('404');
 });
 
-// Start server
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
 
+io.on('connection', (socket) => {
+  console.log('A user connected');
+
+  // รับข้อความจากไคลเอนต์
+  socket.on('chat message', (msg) => {
+    // ส่งข้อความไปยังทุกคนที่เชื่อมต่ออยู่
+    io.emit('chat message', msg);
+  });
+
+  // เมื่อผู้ใช้ตัดการเชื่อมต่อ
+  socket.on('disconnect', () => {
+    console.log('User disconnected');
+  });
+});
