@@ -45,10 +45,10 @@
 
 <body>
   <div class="contant">
-    <%- include('../task/task_component/task-navbar.ejs') %>
+    <%- include('/task/task_component/task-navbar.ejs') %>
       <div class="chat-container">
         <div class="messages" id="messages">
-          <% messages.forEach((msg)=> { %>
+          <% messages.forEach((msg) => { %>
             <div class="message">
               <img src="<%= msg.userId.profileImage %>" alt="User" class="avatar">
               <span><strong>
@@ -57,7 +57,7 @@
                 <%= msg.message %>
               </span>
             </div>
-            <% }); %>
+          <% }); %>          
         </div>
         <form class="chat-form" id="chatForm">
           <input type="text" id="messageInput" name="message" placeholder="Type a message..." required>
@@ -75,7 +75,7 @@
       messageElement.classList.add('message');
       messageElement.innerHTML = `
         <img src="${msg.userId.profileImage}" alt="User" class="avatar">
-        <span><strong>${msg.userId.firstName} ${msg.userId.lastName}:</strong> ${msg.message}</span>
+        <span><strong>${msg.userId.username}:</strong> ${msg.message}</span>
     `;
       messages.appendChild(messageElement);
       messages.scrollTop = messages.scrollHeight; // เลื่อนลงอัตโนมัติเมื่อมีข้อความใหม่
