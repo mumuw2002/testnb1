@@ -13,5 +13,6 @@ router.get('/space/item/:id/granttChart', isLoggedIn, taskPageController.granttC
 
 router.get('/space/item/:id/chat', isLoggedIn, chatController.renderChatPage);
 router.post('/space/item/:id/chat', isLoggedIn, chatController.postMessage);
+router.post('/space/item/:id/chat/:messageId/read', isLoggedIn, chatController.markAsRead);
 
 module.exports = router;

@@ -18,7 +18,37 @@
     .message {
       margin-bottom: 10px;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
+    }
+
+    .message.current-user {
+      justify-content: flex-end;
+    }
+
+    .message.other-user {
+      justify-content: flex-start;
+    }
+
+    .message-bubble {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 10px;
+      position: relative;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: normal;
+    }
+
+    .message.current-user .message-bubble {
+      background-color: #007bff;
+      color: white;
+      margin-left: auto;
+    }
+
+    .message.other-user .message-bubble {
+      background-color: #f1f1f1;
+      color: black;
+      margin-right: auto;
     }
 
     .avatar {
@@ -44,66 +74,127 @@
 </head>
 
 <body>
-  <div class="contant">
-    <%- include('/task/task_component/task-navbar.ejs') %>
-      <div class="chat-container">
-        <div class="messages" id="messages">
-          <% messages.forEach((msg) => { %>
-            <div class="message">
+  <%- include('../task/task_component/task-navbar.ejs') %>
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <% messages.forEach((msg)=> { %>
+          <div class="message <%= msg.userId._id.toString() === user._id.toString() ? 'current-user' : 'other-user' %>" data-message-id="<%= msg._id %>">
+            <% if (msg.userId._id.toString() !== user._id.toString()) { %>
               <img src="<%= msg.userId.profileImage %>" alt="User" class="avatar">
-              <span><strong>
-                  <%= msg.userId.firstName %> <%= msg.userId.lastName %>:
-                </strong>
-                <%= msg.message %>
-              </span>
+            <% } %>
+            <div class="message-bubble">
+              <% if (msg.userId._id.toString() !== user._id.toString()) { %>
+                <strong><%= msg.userId.firstName %> <%= msg.userId.lastName %>:</strong>
+              <% } %>
+              <%= msg.message %>
+              <% if (msg.userId._id.toString() === user._id.toString()) { %>
+                <div class="read-status">Read by: <%= msg.readBy.length %></div>
+              <% } %>
             </div>
-          <% }); %>          
-        </div>
-        <form class="chat-form" id="chatForm">
-          <input type="text" id="messageInput" name="message" placeholder="Type a message..." required>
-          <button type="submit">Send</button>
-        </form>
+          </div>
+          <% }); %>
       </div>
-  </div>
-  <script>
-    const socket = io();
+      <form class="chat-form" id="chatForm">
+        <input type="text" id="messageInput" name="message" placeholder="Type a message..." required>
+        <button type="submit">Send</button>
+      </form>
+    </div>
 
-    // รับข้อความจากเซิร์ฟเวอร์
-    socket.on('chat message', (msg) => {
-      const messages = document.querySelector('.messages');
-      const messageElement = document.createElement('div');
-      messageElement.classList.add('message');
-      messageElement.innerHTML = `
-        <img src="${msg.userId.profileImage}" alt="User" class="avatar">
-        <span><strong>${msg.userId.username}:</strong> ${msg.message}</span>
-    `;
-      messages.appendChild(messageElement);
-      messages.scrollTop = messages.scrollHeight; // เลื่อนลงอัตโนมัติเมื่อมีข้อความใหม่
-    });
-
-    // ส่งข้อความไปยังเซิร์ฟเวอร์ผ่าน HTTP POST request
-    document.querySelector('.chat-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const input = document.querySelector('input[name="message"]');
-      const message = input.value;
-
-      try {
-        const response = await fetch(`/space/item/<%= spaces._id %>/chat`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ message }),
-        });
-
-        if (response.ok) {
-          input.value = ''; // ล้างช่อง input
-        } else {
-          console.error('Failed to send message');
+    <script>
+      const socket = io();
+    
+      // ฟังก์ชันตรวจสอบ URL
+      const isChatPage = () => {
+        const currentPath = window.location.pathname;
+        const chatPagePattern = /\/space\/item\/[a-f0-9]{24}\/chat/; // ตรวจสอบว่า URL ตรงกับ /space/item/:id/chat หรือไม่
+        return chatPagePattern.test(currentPath);
+      };
+    
+      // ฟังก์ชันอัปเดตสถานะการอ่านสำหรับข้อความทั้งหมดที่ยังไม่ได้อ่าน
+      const markAllMessagesAsRead = () => {
+        if (isChatPage()) {
+          document.querySelectorAll('.message').forEach((messageElement) => {
+            const messageId = messageElement.dataset.messageId;
+            if (messageId) {
+              fetch(`/space/item/<%= spaces._id %>/chat/${messageId}/read`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+            }
+          });
         }
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    });
-  </script>
+      };
+    
+      window.addEventListener('load', () => {
+        markAllMessagesAsRead();
+      });
+    
+      // รับข้อความจากเซิร์ฟเวอร์
+      socket.on('chat message', (msg) => {
+        console.log('Received new message:', msg);
+        const messages = document.querySelector('.messages');
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message');
+        if (msg.userId._id.toString() === '<%= user._id.toString() %>') {
+          messageElement.classList.add('current-user');
+          messageElement.innerHTML = `
+            <div class="message-bubble">
+              ${msg.message}
+              <div class="read-status">Read by: ${msg.readBy.length}</div>
+            </div>
+          `;
+        } else {
+          messageElement.classList.add('other-user');
+          messageElement.innerHTML = `
+            <img src="${msg.userId.profileImage}" alt="User" class="avatar">
+            <div class="message-bubble">
+              <strong>${msg.userId.firstName} ${msg.userId.lastName}:</strong> ${msg.message}
+            </div>
+          `;
+        }
+        messages.appendChild(messageElement);
+        messages.scrollTop = messages.scrollHeight; // เลื่อนลงอัตโนมัติเมื่อมีข้อความใหม่
+      });
+    
+      // รับสถานะการอ่านจากเซิร์ฟเวอร์
+      socket.on('message read', (data) => {
+        console.log('Received read status update:', data);
+        const messageElement = document.querySelector(`[data-message-id="${data.messageId}"]`);
+        if (messageElement) {
+          const readCount = data.readBy.length;
+          const readStatusElement = messageElement.querySelector('.read-status');
+          if (readStatusElement) {
+            readStatusElement.textContent = `Read by: ${readCount}`;
+          }
+        }
+      });
+    
+      // ส่งข้อความไปยังเซิร์ฟเวอร์ผ่าน HTTP POST request
+      document.querySelector('.chat-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const input = document.querySelector('input[name="message"]');
+        const message = input.value;
+    
+        try {
+          const response = await fetch(`/space/item/<%= spaces._id %>/chat`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message }),
+          });
+    
+          if (response.ok) {
+            input.value = ''; // ล้างช่อง input
+          } else {
+            console.error('Failed to send message');
+          }
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      });
+    </script>
+
 </body>

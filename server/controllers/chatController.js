@@ -40,7 +40,8 @@ exports.postMessage = async (req, res) => {
     const newMessage = new Chat({
       spaceId,
       userId,
-      message
+      message,
+      readBy: [userId]
     });
 
     await newMessage.save();
@@ -49,6 +50,7 @@ exports.postMessage = async (req, res) => {
     const populatedMessage = await Chat.findById(newMessage._id).populate('userId', 'firstName lastName profileImage').lean();
     const io = req.app.get('io'); // ใช้ req.app.get('io') เพื่อเข้าถึง Socket.IO instance
     io.emit('chat message', populatedMessage);
+    console.log(`Emitted 'chat message' for message ID: ${populatedMessage._id}`);
 
     res.status(200).json({ success: true, message: populatedMessage });
   } catch (error) {
@@ -57,3 +59,27 @@ exports.postMessage = async (req, res) => {
   }
 };
 
+exports.markAsRead = async (req, res) => {
+  try {
+    const messageId = req.params.messageId;
+    const userId = req.user.id;
+
+    const message = await Chat.findById(messageId);
+    if (!message.readBy.includes(userId)) {
+      message.readBy.push(userId);
+      await message.save();
+
+      // ส่งข้อมูลสถานะการอ่านผ่าน Socket.IO ไปยังทุกไคลเอนต์
+      const io = req.app.get('io');
+      io.emit('message read', { messageId, readBy: message.readBy });
+      console.log(`Emitted 'message read' for message ID: ${messageId}`);
+
+      res.status(200).json({ success: true });
+    } else {
+      res.status(200).json({ success: true, message: 'Already read' });
+    }
+  } catch (error) {
+    console.log("Error marking message as read:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
+  }
+};

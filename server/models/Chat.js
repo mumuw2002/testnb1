@@ -9,7 +9,7 @@ const chatSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    ref: 'User', // อ้างอิงไปที่ collection User
+    ref: 'User',
   },
   message: {
     type: String,
@@ -19,6 +19,10 @@ const chatSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  readBy: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 });
 
 module.exports = mongoose.model('Chat', chatSchema);
