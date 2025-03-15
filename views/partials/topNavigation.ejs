@@ -1,4 +1,5 @@
 <head>
+    <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="/public/css/partialsCss/topNavigation.css">
 </head>
 
@@ -55,80 +56,8 @@
                         </div>
 
                         <div class="divindLine"></div>
-
-                        <!-- <div class="notiItem notRead" id="invitation">
-                            <div class="notiConteneWarp">
-                                <div class="imgProfile">
-                                    <img src="/pic/images.jpeg" alt="" class="profileImage">
-                                </div>
-                                <div class="notiContent">
-                                    <span class="firstLine">
-                                        <span style="font-weight: 400;">User Name</span> ได้เพิ่มคุณเข้าโปรเจกต์
-                                        <a href="#" style="font-weight: 400;" id="viewLine">Project Name</a> แล้ว
-                                    </span>
-                                    <span class="secondLine">
-                                        แจ้งเตือนเมื่อ:
-                                    </span>
-                                </div>
-
-                                <div class="readSec">
-                                    <button id="isRead"></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="notiItem" id="invitation">
-                            <div class="notiConteneWarp">
-                                <div class="imgProfile">
-                                    <img src="/pic/images.jpeg" alt="" class="profileImage">
-                                </div>
-                                <div class="notiContent">
-                                    <span class="firstLine">
-                                        <span>User Name</span> ได้เพิ่มคุณเข้าโปรเจกต์
-                                        <a href="#">Project Name</a> แล้ว
-                                    </span>
-                                    <span class="secondLine">
-                                        แจ้งเตือนเมื่อ
-                                    </span>
-                                </div>
-
-                                <div class="readSec">
-                                    <button id="isRead"></button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="notiItem taskAssignment" id="taskAssignment">
-                            <div class="notiItemWrap">
-                                <div class="notiFrom">
-                                    <div class="assTask">
-                                        <a href="#" id="viewTaskLink">Assgined Task Name</a>
-                                    </div>
-                                    <div class="assProject">
-                                        Assgined Project Name: <span style="font-weight: 300;">
-                                            <a href="#" style="color: white;">spaceName</a></span>
-                                    </div>
-                                </div>
-                                <div class="notiConteneWarp">
-                                    <div class="imgProfile">
-                                        <img src="/pic/images.jpeg" alt="" class="profileImage">
-                                    </div>
-                                    <div class="notiContent">
-                                        <span class="firstLine">
-                                            <span style="font-weight: 400;">User Name</span> ได้มอบหมายงานให้กับคุณ
-                                            <br> ครบกำหนดวันที่: <span style="font-weight: 400;">DueDate</span>
-                                        </span>
-                                        <span class="secondLine">
-                                            แจ้งเตือนเมื่อ
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="readSec">
-                                <button id="isRead"></button>
-                            </div>
-                        </div> -->
+                        <div class="notiItem Messages" style="display: none;"></div>
+                        <div class="notiItem Mentions" style="display: none;"></div>
                     </div>
                 </div>
 
@@ -136,10 +65,10 @@
                     <div class="linkWrap">
                         <a class="nav_link dropdown-toggle" id="profile-dropdown" role="button"
                             data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="<%= user.profileImage %><%= user.profileImage %> || /img/profileImage/Profile.jpeg" 
-                                 alt="<%= user.username %>'s Profile Image" 
-                                 onerror="this.onerror=null; this.src='/public/img/profileImage/userDefalt.jpg';"
-                                 id="userImg">
+                            <img src="<%= user.profileImage %><%= user.profileImage %> || /img/profileImage/Profile.jpeg"
+                                alt="<%= user.username %>'s Profile Image"
+                                onerror="this.onerror=null; this.src='/public/img/profileImage/userDefalt.jpg';"
+                                id="userImg">
                         </a>
                     </div>
 
@@ -233,4 +162,144 @@
             event.stopPropagation();
         });
     });
+</script>
+<script>
+    const socket = io(); // ประกาศ socket แค่ครั้งเดียว
+
+    function updateUnreadMessagesUI(data) {
+        const notiContainer = document.querySelector('.notiItem.Messages');
+        const notiCount = document.querySelector('.notiNew .count');
+
+        // ล้างการแจ้งเตือนเก่า
+        notiContainer.innerHTML = '';
+
+        // ตรวจสอบว่า data เป็นอาร์เรย์และมีข้อมูล
+        if (Array.isArray(data)) {
+            // กรองเฉพาะข้อความที่ยังไม่ได้อ่าน
+            const unreadMessages = data.filter(item => item.unreadCount > 0);
+
+            if (unreadMessages.length > 0) {
+                // แสดงการแจ้งเตือน
+                notiContainer.style.display = 'block';
+
+                unreadMessages.forEach(item => {
+                    const notiItem = document.createElement('div');
+                    notiItem.classList.add('notiItem', 'notRead');
+                    notiItem.innerHTML = `
+              <div class="notiConteneWarp">
+                <div class="notiContent">
+                  <span class="firstLine">
+                    คุณมีข้อความที่ยังไม่ได้อ่านในโปรเจกต์
+                    <a href="/space/item/${item.spaceId}/chat" style="font-weight: 400;">${item.projectName}</a>
+                  </span>
+                  <span class="secondLine">
+                    จำนวน: ${item.unreadCount} ข้อความ
+                  </span>
+                </div>
+              </div>
+            `;
+                    notiContainer.prepend(notiItem);
+                });
+
+                // อัปเดตจำนวนการแจ้งเตือน
+                notiCount.textContent = unreadMessages.length;
+            } else {
+                // ซ่อนการแจ้งเตือนถ้าไม่มีข้อความที่ยังไม่ได้อ่าน
+                notiContainer.style.display = 'none';
+                notiCount.textContent = 0;
+            }
+        } else {
+            console.error('Data is not an array:', data);
+        }
+    }
+
+    // ฟังก์ชันอัปเดต UI การแจ้งเตือนสำหรับ Mention
+    function updateMentionsUI(data) {
+        const notiContainer = document.querySelector('.notiItem.Mentions');
+        const notiCount = document.querySelector('.notiNew .count');
+
+        // ล้างการแจ้งเตือนเก่า
+        notiContainer.innerHTML = '';
+
+        // ตรวจสอบว่า data เป็นอาร์เรย์
+        if (Array.isArray(data)) {
+            // แสดงการแจ้งเตือนแต่ละรายการ
+            data.forEach(item => {
+                const notiItem = document.createElement('div');
+                notiItem.classList.add('notiItem', 'notRead');
+                notiItem.innerHTML = `
+                <div class="notiConteneWarp">
+                    <div class="notiContent">
+                        <span class="firstLine">
+                            คุณถูก mention โดย ${item.mentionedBy} ในโปรเจกต์
+                            <a href="${item.link}" style="font-weight: 400;">${item.projectName}</a>
+                        </span>
+                        <span class="secondLine">
+                            ข้อความ: ${item.message}
+                        </span>
+                    </div>
+                </div>
+            `;
+                notiContainer.prepend(notiItem);
+            });
+
+            // แสดง container ถ้ามีการแจ้งเตือน
+            if (data.length > 0) {
+                notiContainer.style.display = 'block';
+            } else {
+                notiContainer.style.display = 'none';
+            }
+
+            // อัปเดตจำนวนการแจ้งเตือน
+            notiCount.textContent = data.length;
+        } else {
+            console.error('Data is not an array:', data);
+        }
+    }
+    // ฟังก์ชันดึงข้อมูลข้อความที่ยังไม่ได้อ่าน
+    async function fetchUnreadMessages() {
+        try {
+            const response = await fetch('/space/item/unread-messages');
+            const data = await response.json();
+            if (data.success && Array.isArray(data.unreadCounts)) {
+                updateUnreadMessagesUI(data.unreadCounts);
+            } else {
+                console.error('Invalid data format:', data);
+            }
+        } catch (error) {
+            console.error('Error fetching unread messages:', error);
+        }
+    }
+
+    // ฟังก์ชันดึงข้อมูล mentions ที่ยังไม่ได้อ่าน
+    async function fetchUnreadMentions() {
+        try {
+            const response = await fetch('/space/item/unread-mentions');
+            const data = await response.json();
+            if (data.success) {
+                updateMentionsUI(data.unreadMentions); // เรียกใช้ฟังก์ชันอัปเดต UI
+            } else {
+                console.error('Invalid data format:', data);
+            }
+        } catch (error) {
+            console.error('Error fetching unread mentions:', error);
+        }
+    }
+    // ใช้ Socket.IO รับอัปเดตแบบเรียลไทม์สำหรับ Unread Messages
+    socket.on('new unread message', () => {
+        fetchUnreadMessages(); // รีเฟรชการแจ้งเตือนอัตโนมัติ
+    });
+
+    // ใช้ Socket.IO รับอัปเดตแบบเรียลไทม์สำหรับ Mention
+    socket.on('new mention', (data) => {
+        console.log('New mention received:', data); // Log ข้อมูลการ mention
+        fetchUnreadMentions();
+    });
+
+    // ดึงข้อมูลครั้งแรกเมื่อโหลดหน้า
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchUnreadMentions();
+        fetchUnreadMessages();
+    });
+
 </script>

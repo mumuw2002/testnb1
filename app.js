@@ -10,12 +10,13 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const flash = require('connect-flash');
 const LocalStrategy = require('passport-local').Strategy;
-const User = require('./server/models/User'); 
+const User = require('./server/models/User');
 const moment = require('moment');
 const bodyParser = require('body-parser');
 const lineWebhook = require('./server/routes/lineWebhook');
 const http = require('http');
 const socketIo = require('socket.io');
+const Chat = require('./server/models/Chat');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -90,7 +91,6 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // Middleware to handle due date validation
 app.use((req, res, next) => {
   if (req.body.dueDate) {
@@ -116,7 +116,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
 
 // Templating Engine
 app.use(expressLayouts);
@@ -144,21 +143,134 @@ app.get('*', (req, res) => {
   res.status(404).render('404');
 });
 
-server.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
-});
+// WebSocket Setup
+// ตั้งค่า usersInChat ใน app
+const usersInChat = new Map(); // เก็บข้อมูลผู้ใช้ที่อยู่ในหน้าแชท
+app.set('usersInChat', usersInChat);
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('🔌 User connected:', socket.id);
 
-  // รับข้อความจากไคลเอนต์
-  socket.on('chat message', (msg) => {
-    // ส่งข้อความไปยังทุกคนที่เชื่อมต่ออยู่
-    io.emit('chat message', msg);
-  });
-
-  // เมื่อผู้ใช้ตัดการเชื่อมต่อ
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log('🔌 User disconnected:', socket.id);
   });
+
+  // เมื่อผู้ใช้อยู่ในหน้าแชท
+  socket.on('user in chat', async ({ userId, spaceId }) => {
+    if (!usersInChat.has(spaceId)) {
+      usersInChat.set(spaceId, new Set());
+    }
+    usersInChat.get(spaceId).add(userId);
+
+    console.log(`User ${userId} is in chat for space ${spaceId}`);
+
+    // อัปเดตสถานะ readBy สำหรับข้อความที่ยังไม่ได้อ่าน
+    const unreadMessages = await Chat.find({
+      spaceId,
+      readBy: { $ne: userId }
+    });
+
+    unreadMessages.forEach(async (msg) => {
+      // ตรวจสอบว่า userId ไม่ใช่ผู้ส่งข้อความ
+      if (msg.userId.toString() !== userId.toString()) {
+        msg.readBy.push(userId);
+        await msg.save();
+
+        // แจ้ง client ว่าข้อความถูกอ่าน
+        io.emit('message read update', {
+          messageId: msg._id.toString(),
+          readByCount: msg.readBy.length,
+        });
+      }
+    });
+  });
+
+  // เมื่อผู้ใช้ออกจากหน้าแชท
+  socket.on('user left chat', ({ userId, spaceId }) => {
+    if (usersInChat.has(spaceId)) {
+      usersInChat.get(spaceId).delete(userId);
+      console.log(`User ${userId} left chat for space ${spaceId}`);
+    }
+  });
+
+  // เมื่อผู้ใช้กลับเข้ามาในหน้าแชท
+  socket.on('user returned to chat', ({ userId, spaceId }) => {
+    if (!usersInChat.has(spaceId)) {
+      usersInChat.set(spaceId, new Set());
+    }
+    usersInChat.get(spaceId).add(userId);
+
+    console.log(`User ${userId} returned to chat for space ${spaceId}`);
+
+    // อัปเดตสถานะ readBy สำหรับข้อความที่ยังไม่ได้อ่าน
+    Chat.find({
+      spaceId,
+      readBy: { $ne: userId }
+    }).then((unreadMessages) => {
+      unreadMessages.forEach((msg) => {
+        // ตรวจสอบว่า userId ไม่ใช่ผู้ส่งข้อความ
+        if (msg.userId.toString() !== userId.toString()) {
+          msg.readBy.push(userId);
+          msg.save();
+
+          // แจ้ง client ว่าข้อความถูกอ่าน
+          io.emit('message read update', {
+            messageId: msg._id.toString(),
+            readByCount: msg.readBy.length,
+          });
+        }
+      });
+    });
+  });
+
+  // เมื่อมีข้อความใหม่
+  socket.on('send message', async ({ spaceId, message, userId, mentionedUsers }) => {
+    const newMessage = new Chat({
+      spaceId,
+      userId,
+      message,
+      readBy: [],
+      mentionedUsers: mentionedUsers || []
+    });
+
+    await newMessage.save();
+    const populatedMessage = await Chat.findById(newMessage._id)
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('mentionedUsers', 'firstName lastName')
+      .lean();
+
+    io.emit('chat message', populatedMessage);
+
+    // แจ้งเตือนผู้ใช้ที่ถูก mention
+    if (mentionedUsers && mentionedUsers.length > 0) {
+      mentionedUsers.forEach(userId => {
+        io.to(userId).emit('new mention', {
+          spaceId,
+          projectName: 'Project Name', // ควรดึงข้อมูลจากฐานข้อมูล
+          message: populatedMessage.message,
+          mentionedBy: populatedMessage.userId.firstName + ' ' + populatedMessage.userId.lastName,
+          link: `/space/item/${spaceId}/chat`
+        });
+      });
+    }
+
+    // แจ้งเตือนผู้ใช้ที่ไม่ได้อยู่ในหน้าแชท
+    const usersToNotify = usersInChat.get(spaceId) || new Set();
+    usersToNotify.forEach(id => {
+      if (id !== userId && !mentionedUsers.includes(id)) {
+        io.to(id).emit('new unread message', {
+          spaceId,
+          projectName: 'Project Name', // ควรดึงข้อมูลจากฐานข้อมูล
+          unreadCount: 1,
+          lastMessage: message,
+          link: `/space/item/${spaceId}/chat`
+        });
+      }
+    });
+
+  });
+});
+
+server.listen(port, () => {
+  console.log(`Server listening at http://localhost:${port}`);
 });
