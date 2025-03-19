@@ -17,7 +17,7 @@ router.post('/space/item/:id/chat/:messageId/read', isLoggedIn, chatController.m
 
 router.get('/space/item/unread-messages', isLoggedIn, chatController.getUnreadMessageCount);
 router.get('/space/item/unread-mentions', isLoggedIn, chatController.getUnreadMentionsCount);
-router.get('/space/:spaceId/search-users', chatController.searchUsers);
+router.get('/space/:spaceId/search-users', isLoggedIn, chatController.searchUsers);
 router.post('/space/item/:spaceId/mark-all-as-read', isLoggedIn, chatController.markAllAsRead);
 
 module.exports = router;

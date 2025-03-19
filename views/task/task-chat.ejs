@@ -5,7 +5,7 @@
   }
 
   .chat-container {
-    max-width: 1000px;
+    max-width: 900px;
     margin: 20px auto;
     display: flex;
     border: #ebebeb solid 1px;
@@ -136,6 +136,7 @@
     width: 300px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     margin-top: 5px;
+    bottom: 70px;
   }
 
   .user-list {
@@ -201,31 +202,36 @@
                     <% } %>
                       <% previousDate=messageDate; %>
                         <div
-                          class="message <%= msg.userId._id.toString() === user._id.toString() ? 'current-user' : 'other-user' %>"
+                          class="message <%= msg.userId && msg.userId._id && msg.userId._id.toString() === user._id.toString() ? 'current-user' : 'other-user' %>"
                           data-message-id="<%= msg._id %>">
-                          <% if (msg.userId._id.toString() !==user._id.toString()) { %>
-                            <img src="<%= msg.userId.profileImage %>" alt="User" class="avatar">
+
+                          <% if (msg.userId && msg.userId._id && msg.userId._id.toString() !==user._id.toString()) { %>
+                            <img src="<%= msg.userId.profileImage || '/path/to/default/avatar.png' %>" alt="User"
+                              class="avatar">
                             <% } %>
+
                               <div class="message-bubble">
-                                <% if (msg.userId._id.toString() !==user._id.toString()) { %>
+                                <% if (msg.userId && msg.userId._id.toString() !==user._id.toString()) { %>
                                   <div id="chat-nameuser">
                                     <%= msg.userId.firstName %>
                                       <%= msg.userId.lastName %>
                                   </div>
                                   <% } %>
+
+
                                     <%= msg.message %>
-                                      <!-- แสดงเวลาและ read-status เฉพาะผู้ส่งข้อความ -->
+
                                       <div class="message-time">
                                         <%= formatTime(messageDate) %>
-
-                                          <% if (msg.userId._id.toString()===user._id.toString()) { %>
+                                          <% if (msg.userId && msg.userId._id &&
+                                            msg.userId._id.toString()===user._id.toString()) { %>
                                             <span class="read-status">เห็นแล้ว: <%= msg.readBy.length %> คน</span>
                                             <% } %>
                                       </div>
                               </div>
                         </div>
-                        <% }); %>
 
+                        <% }); %>
           </div>
           <div class="user-search-results" id="userSearchResults" style="display: none;">
             <ul class="user-list"></ul>
@@ -233,7 +239,8 @@
         </div>
         <div class="chat-formsubmit" id="chat-sec">
           <form class="chat-form" id="chatForm">
-            <input type="text" id="messageInput" name="message" placeholder="พิมพ์ข้อความ..." required>
+            <input type="text" id="messageInput" name="message" placeholder="พิมพ์ข้อความ..." required
+              autocomplete="off">
             <button type="submit"><i class='bx bx-send' style='color:#ffffff'></i></button>
           </form>
         </div>
@@ -429,59 +436,92 @@
       function displayUserResults(users) {
         userList.innerHTML = ''; // ล้างผลลัพธ์เก่า
         users.forEach(user => {
-          const li = document.createElement('li');
-          li.innerHTML = `
-      <img src="${user.profileImage || '/img/profileImage/Profile.jpeg'}" alt="User" class="avatar" style="width: 20px; height: 20px;">
-      <span>${user.firstName} ${user.lastName}</span>
-    `;
-          li.dataset.userId = user._id; // เก็บ userid ใน dataset
-          li.addEventListener('click', () => selectUser(user));
-          userList.appendChild(li);
+          // ตรวจสอบอีกครั้งว่า user ไม่ใช่ตัวเอง (เพื่อความปลอดภัย)
+          if (user._id.toString() !== '<%= user._id %>') {
+            const li = document.createElement('li');
+            li.innerHTML = `
+        <img src="${user.profileImage || '/img/profileImage/Profile.jpeg'}" alt="User" class="avatar" style="width: 20px; height: 20px;">
+        <span>${user.firstName} ${user.lastName}</span>
+      `;
+            li.dataset.userId = user._id; // เก็บ userid ใน dataset
+            li.addEventListener('click', () => selectUser(user));
+            userList.appendChild(li);
+          }
         });
         userSearchResults.style.display = 'block';
       }
+
       // ฟังก์ชันเลือกผู้ใช้
       function selectUser(user) {
         if (!selectedUsers.some(u => u._id === user._id)) {
-          selectedUsers.push({ _id: user._id, firstName: user.firstName, lastName: user.lastName });
+          selectedUsers.push(user);
           updateMessageInput();
+        } else {
+          console.log(`${user.firstName} ถูกเลือกไปแล้ว!`);
         }
         userSearchResults.style.display = 'none';
       }
 
-      // ฟังก์ชันอัปเดต input ข้อความ
-      function updateMessageInput() {
-        const userTags = selectedUsers.map(user => `@${user.firstName} ${user.lastName}`).join(' ');
-        messageInput.value = userTags + ' ';
+      function syncSelectedUsersWithInput() {
+        selectedUsers = selectedUsers.filter(user => {
+          const userTag = `@${user.firstName} ${user.lastName}`;
+          return messageInput.value.includes(userTag);
+        });
       }
+
 
       // ฟังก์ชันอัปเดต input ข้อความ
       function updateMessageInput() {
         const userTags = selectedUsers.map(user => `@${user.firstName} ${user.lastName}`).join(' ');
         messageInput.value = userTags + ' ';
+        messageInput.focus(); // ให้ focus กลับไปที่ input หลังจากอัปเดต
       }
 
       // ฟังก์ชันตรวจสอบเมื่อผู้ใช้พิมพ์
+      // ฟังก์ชัน sync selectedUsers กับ messageInput
+      function syncSelectedUsersWithInput() {
+        selectedUsers = selectedUsers.filter(user => {
+          const userTag = `@${user.firstName} ${user.lastName}`;
+          return messageInput.value.includes(userTag);
+        });
+      }
+
       messageInput.addEventListener('input', (e) => {
-        const value = e.target.value;
+        const value = e.target.value.trim();
         const atIndex = value.lastIndexOf('@');
 
+        syncSelectedUsersWithInput(); // ✅ sync ทุกครั้งที่ input เปลี่ยน
+
         if (atIndex !== -1) {
-          const query = value.slice(atIndex + 1);
-          searchUsers(query);
+          const query = value.slice(atIndex + 1).trim();
+          if (query.length > 0) {
+            searchUsers(query);
+          } else {
+            searchUsers('');
+          }
         } else {
           userSearchResults.style.display = 'none';
+        }
+      });
+
+      messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+          setTimeout(() => {
+            syncSelectedUsersWithInput(); // ✅ sync หลังจาก backspace
+          }, 0);
         }
       });
 
       // ฟังก์ชันส่งข้อความ
       document.querySelector('.chat-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isSending) return;
+        isSending = true;
+
         const message = messageInput.value;
         const spaceId = '<%= spaces._id %>';
         const userId = '<%= user._id %>';
 
-        // ดึง userid ของผู้ใช้ที่ถูก mention
         const mentionedUserIds = selectedUsers.map(user => user._id);
         console.log('Mentioned Users:', mentionedUserIds); // Log ผู้ใช้ที่ถูก mention
 
@@ -502,51 +542,44 @@
           }
         } catch (error) {
           console.error('Error sending message:', error);
+        } finally {
+          isSending = false;
         }
       });
-
-
       // เมื่อผู้ใช้ถูก mention
       socket.on('new mention', (data) => {
         alert(`คุณถูก mention โดย ${data.mentionedBy} ในโปรเจกต์ ${data.projectName}: ${data.message}`);
       });
 
-      // ฟังก์ชันดึง username ที่ถูก mention จากข้อความ
-      function extractMentions(message) {
-        const mentionRegex = /@(\w+)/g; // ใช้ regex เพื่อดึงชื่อผู้ใช้ที่ถูก mention
-        const matches = message.match(mentionRegex);
-        if (matches) {
-          return matches.map(match => match.slice(1)); // ตัด @ ออก
-        }
-        return [];
-      }
-
       // ตรวจจับเหตุการณ์ keydown บน messageInput
       messageInput.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace') {
-          const value = messageInput.value.trim(); // ตัดช่องว่างส่วนเกิน
-          const atIndex = value.lastIndexOf('@');
+          const value = messageInput.value;
+          const cursorPosition = messageInput.selectionStart;
 
-          // ถ้ามี @ และชื่อผู้ใช้อยู่ใน input
-          if (atIndex !== -1) {
-            e.preventDefault(); // หยุดการทำงานปกติของ Backspace
+          // เช็คว่าตำแหน่งเคอร์เซอร์อยู่หลัง Mention พอดีหรือเปล่า
+          for (const user of selectedUsers) {
+            const mentionText = `@${user.firstName} ${user.lastName}`;
+            const mentionEnd = value.indexOf(mentionText) + mentionText.length;
 
-            // แยกผู้ใช้ใน messageInput
-            const userTags = value.split('@').filter(tag => tag.trim() !== '');
-
-            // ถ้ายังมีผู้ใช้เหลืออยู่
-            if (userTags.length > 0) {
-              // ลบผู้ใช้คนสุดท้ายออกจาก selectedUsers
-              selectedUsers.pop();
-
-              // อัปเดต messageInput
-              updateMessageInput();
-            } else {
-              // ถ้าไม่มีผู้ใช้เหลืออยู่ ให้ล้างทั้งหมด
-              selectedUsers = [];
-              messageInput.value = '';
+            // เคอร์เซอร์อยู่หลัง Mention พอดี และไม่มีข้อความตามหลัง
+            if (cursorPosition === mentionEnd) {
+              // เช็คว่าหลัง mention ไม่มี text ต่อ (หรือเป็นช่องว่างตามหลัง)
+              const remainingText = value.slice(mentionEnd).trim();
+              if (remainingText === '') {
+                e.preventDefault(); // ยกเลิก backspace ปกติ
+                // ลบ mention ทั้งชุดออก
+                const newValue = value.slice(0, value.indexOf(mentionText)) + value.slice(mentionEnd);
+                messageInput.value = newValue.trim();
+                messageInput.setSelectionRange(value.indexOf(mentionText), value.indexOf(mentionText)); // วางเคอร์เซอร์ใหม่
+                // ลบ user ออกจาก selectedUsers
+                selectedUsers = selectedUsers.filter(u => u._id !== user._id);
+                return; // ออกจาก loop ทันที
+              }
             }
           }
         }
       });
+
     </script>
+</body>

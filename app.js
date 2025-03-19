@@ -267,7 +267,6 @@ io.on('connection', (socket) => {
         });
       }
     });
-
   });
 });
 

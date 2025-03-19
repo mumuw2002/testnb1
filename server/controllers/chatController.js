@@ -64,64 +64,62 @@ exports.renderChatPage = async (req, res) => {
 // ส่งข้อความ
 exports.postMessage = async (req, res) => {
   try {
-      const spaceId = req.params.id;
-      const message = req.body.message;
-      const mentionedUserIds = req.body.mentionedUsers || []; // รายชื่อ userid ที่ถูก mention
-      const userId = req.user.id;
+    const spaceId = req.params.id;
+    const message = req.body.message;
+    const mentionedUserIds = req.body.mentionedUsers || []; // รายชื่อ userid ที่ถูก mention
+    const userId = req.user.id;
 
-      console.log('Mentioned Users:', mentionedUserIds); // Log ผู้ใช้ที่ถูก mention
+    if (!message || !userId || !spaceId) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
 
-      if (!message || !userId || !spaceId) {
-          return res.status(400).json({ success: false, error: "Missing required fields" });
-      }
+    const space = await Spaces.findById(spaceId);
+    if (!space) {
+      return res.status(404).json({ success: false, error: "Space not found" });
+    }
 
-      const space = await Spaces.findById(spaceId);
-      if (!space) {
-          return res.status(404).json({ success: false, error: "Space not found" });
-      }
+    const usersInChat = req.app.get('usersInChat');
+    const usersInSpaceChat = usersInChat.get(spaceId) || new Set();
 
-      const usersInChat = req.app.get('usersInChat');
-      const usersInSpaceChat = usersInChat.get(spaceId) || new Set();
+    // ตรวจสอบว่าไม่เพิ่มผู้ส่งข้อความลงใน readBy
+    const readBy = Array.from(usersInSpaceChat).filter(id => id.toString() !== userId.toString());
 
-      // ตรวจสอบว่าไม่เพิ่มผู้ส่งข้อความลงใน readBy
-      const readBy = Array.from(usersInSpaceChat).filter(id => id.toString() !== userId.toString());
+    const newMessage = new Chat({
+      spaceId,
+      userId,
+      message,
+      readBy: readBy,
+      mentionedUsers: mentionedUserIds // บันทึก userid ที่ถูก mention
+    });
 
-      const newMessage = new Chat({
+    await newMessage.save();
+
+    const populatedMessage = await Chat.findById(newMessage._id)
+      .populate('userId', 'firstName lastName profileImage')
+      .populate('readBy', 'firstName lastName')
+      .populate('mentionedUsers', 'firstName lastName profileImage') // ดึงข้อมูลผู้ใช้ที่ถูก mention
+      .lean();
+
+    const io = req.app.get('io');
+    io.emit('chat message', populatedMessage);
+
+    // แจ้งเตือนผู้ใช้ที่ถูก mention
+    if (populatedMessage.mentionedUsers.length > 0) {
+      populatedMessage.mentionedUsers.forEach(user => {
+        io.to(user._id).emit('new mention', {
           spaceId,
-          userId,
-          message,
-          readBy: readBy,
-          mentionedUsers: mentionedUserIds // บันทึก userid ที่ถูก mention
+          projectName: space.projectName,
+          message: populatedMessage.message,
+          mentionedBy: req.user.firstName + ' ' + req.user.lastName,
+          link: `/space/item/${spaceId}/chat`
+        });
       });
+    }
 
-      await newMessage.save();
-
-      const populatedMessage = await Chat.findById(newMessage._id)
-          .populate('userId', 'firstName lastName profileImage')
-          .populate('readBy', 'firstName lastName')
-          .populate('mentionedUsers', 'firstName lastName profileImage') // ดึงข้อมูลผู้ใช้ที่ถูก mention
-          .lean();
-
-      const io = req.app.get('io');
-      io.emit('chat message', populatedMessage);
-
-      // แจ้งเตือนผู้ใช้ที่ถูก mention
-      if (populatedMessage.mentionedUsers.length > 0) {
-          populatedMessage.mentionedUsers.forEach(user => {
-              io.to(user._id).emit('new mention', {
-                  spaceId,
-                  projectName: space.projectName,
-                  message: populatedMessage.message,
-                  mentionedBy: req.user.firstName + ' ' + req.user.lastName,
-                  link: `/space/item/${spaceId}/chat`
-              });
-          });
-      }
-
-      res.status(200).json({ success: true, message: populatedMessage });
+    res.status(200).json({ success: true, message: populatedMessage });
   } catch (error) {
-      console.log("Error posting message:", error);
-      res.status(500).json({ success: false, error: "Internal Server Error" });
+    console.log("Error posting message:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 };
 
@@ -246,32 +244,34 @@ exports.markAsRead = async (req, res) => {
 };
 
 // ค้นหาผู้ใช้ตามชื่อ
-// ค้นหาผู้ใช้ตามชื่อ
 exports.searchUsers = async (req, res) => {
   try {
+    const { spaceId } = req.params;
     const { query } = req.query;
-    const spaceId = req.params.spaceId;
 
-    // ดึงข้อมูลผู้ใช้ที่อยู่ใน space นั้น
-    const space = await Spaces.findById(spaceId).populate('collaborators.user', 'firstName lastName username profileImage');
+    // ค้นหา space และ populate collaborators.user
+    const space = await Spaces.findById(spaceId).populate('collaborators.user', 'firstName lastName profileImage');
     if (!space) {
       return res.status(404).json({ success: false, error: "Space not found" });
     }
 
-    // ค้นหาผู้ใช้ที่ตรงกับ query
-    const users = space.collaborators
+    // ดึงข้อมูลผู้ใช้จาก collaborators และกรอง user ที่ไม่ใช่ null และไม่ใช่ตัวเอง
+    let users = space.collaborators
       .map(collab => collab.user)
-      .filter(user => {
-        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const username = user.username ? user.username.toLowerCase() : '';
-        const userId = user._id.toString();
-        return fullName.includes(query.toLowerCase()) || username.includes(query.toLowerCase()) || userId.includes(query.toLowerCase());
-      });
+      .filter(user => user !== null && user._id.toString() !== req.user._id.toString()); // ตรวจสอบว่า user ไม่ใช่ null และไม่ใช่ตัวเอง
 
-    res.status(200).json({ success: true, users });
+    // ถ้ามี query ให้กรองผู้ใช้ตาม query
+    if (query) {
+      users = users.filter(user => 
+        user.firstName.toLowerCase().includes(query.toLowerCase()) ||
+        user.lastName.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    res.json({ success: true, users });
   } catch (error) {
     console.error('Error searching users:', error);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
 };
 
