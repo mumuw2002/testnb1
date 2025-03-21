@@ -12,7 +12,6 @@
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / .1), 0 8px 10px -6px rgb(0 0 0 / .1);
     border-radius: 16px;
     background-color: #ffffff;
-
   }
 
   .chat-seccon {
@@ -490,7 +489,7 @@
         const value = e.target.value.trim();
         const atIndex = value.lastIndexOf('@');
 
-        syncSelectedUsersWithInput(); // ✅ sync ทุกครั้งที่ input เปลี่ยน
+        syncSelectedUsersWithInput();
 
         if (atIndex !== -1) {
           const query = value.slice(atIndex + 1).trim();
@@ -507,7 +506,7 @@
       messageInput.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace') {
           setTimeout(() => {
-            syncSelectedUsersWithInput(); // ✅ sync หลังจาก backspace
+            syncSelectedUsersWithInput();
           }, 0);
         }
       });
@@ -546,6 +545,7 @@
           isSending = false;
         }
       });
+
       // เมื่อผู้ใช้ถูก mention
       socket.on('new mention', (data) => {
         alert(`คุณถูก mention โดย ${data.mentionedBy} ในโปรเจกต์ ${data.projectName}: ${data.message}`);
